@@ -1,0 +1,35 @@
+{
+  "name": "file-uploader",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint:check": "eslint ",
+    "lint:fix": "eslint --fix",
+    "format:check": "prettier --check ./src",
+    "format:fix": "prettier --write ./src",
+    "ts:check": "tsc --noEmit",
+    "test": "vitest run",
+    "coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.22.0",
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/user-event": "^14.6.1",
+    "@vitejs/plugin-legacy": "^6.0.2",
+    "@vitest/coverage-v8": "^3.0.9",
+    "eslint": "^9.22.0",
+    "eslint-config-prettier": "^10.1.1",
+    "globals": "^16.0.0",
+    "jsdom": "^26.0.0",
+    "prettier": "^3.5.3",
+    "typescript": "~5.7.2",
+    "typescript-eslint": "^8.26.1",
+    "vite": "^6.2.0",
+ "vitest": "^3.0.9"
+  }
+}
