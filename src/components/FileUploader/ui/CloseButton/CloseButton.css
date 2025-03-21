@@ -1,0 +1,36 @@
+button {
+  position: relative;
+
+  width: 34px;
+  height: 34px;
+  background-color: rgb(from var(--border-color) r g b / 0.28);
+  border: none;
+  border-radius: 17px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+}
+
+.line {
+  position: absolute;
+  width: 50%;
+  height: 2px;
+
+  background-color: var(--white-color);
+  border-radius: 42.67px;
+}
+
+.line:first-child {
+  transform: rotate(45deg);
+}
+
+.line:last-child {
+  transform: rotate(-45deg);
+}
+
+button:hover .line {
+  background-color: var(--accent-color);
+}

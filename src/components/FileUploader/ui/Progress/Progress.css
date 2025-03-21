@@ -1,0 +1,98 @@
+:host {
+  display: contents;
+}
+
+.progress {
+  width: 100%;
+  height: 35px;
+
+  padding: 3px 6px 3px 3px;
+  border: 1px solid var(--grey-color);
+  border-radius: 10px;
+  background-color: var(--light-white-color);
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.progress:not([show]) {
+  display: none;
+}
+
+.progress:not([active]) {
+  background-color: var(--disabled-color);
+  pointer-events: none;
+}
+
+.icon {
+  background-color: var(--accent-color);
+  width: 13%;
+  height: 28px;
+  border-radius: 10px;
+
+  grid-area: icon;
+}
+
+.loader {
+  width: 66%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.file,
+.percent {
+  color: var(--accent-color);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.file.expand,
+.percent.expand {
+  animation: expandText 0.5s forwards;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 5px;
+  border-radius: 10px;
+  background-color: var(--white-color);
+  padding: 0.5px 1px;
+  transition: opacity 1s ease;
+}
+
+.progress-bar[completed] {
+  opacity: 0;
+}
+
+.progress-line {
+  height: 100%;
+  width: 0%;
+  background-color: var(--accent-color);
+  border-radius: 8px;
+  transition: width 0.3s ease-in-out;
+}
+
+.wrapper-filename {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+}
+
+/* .close {
+  width: 15px;
+  height: 15px;
+} */
+
+@keyframes expandText {
+  0% {
+    font-size: 10px; /* начальный размер */
+  }
+  100% {
+    font-size: 18px; /* конечный размер */
+  }
+}

@@ -1,0 +1,29 @@
+:host {
+  --accent-color: #5f5cf0;
+  --grey-color: #a5a5a5;
+  --light-white-color: #f1f1f1;
+  --white-color: #ffffff;
+  --error-color: #f05c5c;
+  --border-color: #ccccce;
+  --disabled-color: #bbb9d2;
+}
+
+*,
+*::before,
+*::after {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+h1 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--light-white-color);
+}
+
+h2 {
+  font-size: 14px;
+  font-weight: 300;
+  color: var(--light-white-color);
+}

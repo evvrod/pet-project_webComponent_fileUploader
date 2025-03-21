@@ -1,0 +1,62 @@
+:host {
+  display: contents;
+}
+
+.response {
+  max-height: 0;
+  opacity: 0;
+
+  transition:
+    max-height 0.3s ease,
+    opacity 0.3s ease;
+}
+
+.response[show] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+
+  max-height: 1000px;
+  opacity: 1;
+
+  transition:
+    max-height 0.3s ease,
+    opacity 0.3s ease;
+}
+
+.response:not([show]) {
+  max-height: 0;
+  opacity: 0;
+
+  transition:
+    max-height 0.3s ease,
+    opacity 0.3s ease;
+}
+
+.info-block {
+  display: none;
+}
+
+.info-block[show] {
+  display: block;
+  width: 80%;
+}
+
+.info-block > * {
+  width: 100%;
+}
+
+.error-block {
+  display: none;
+}
+
+.error-block[show] {
+  display: block;
+  width: 80%;
+}
+
+.error-block p {
+  width: 100%;
+  background-color: red;
+}

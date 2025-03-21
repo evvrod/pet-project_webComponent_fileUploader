@@ -1,0 +1,78 @@
+:host {
+  display: contents;
+}
+
+button[show] {
+  position: relative;
+  width: 100%;
+  padding: 16px 5px;
+
+  background-color: var(--accent-color);
+  color: white;
+
+  border-radius: 30px;
+
+  border: none;
+  cursor: pointer;
+
+  max-height: 100px;
+  opacity: 1;
+
+  transition:
+    max-height 0.3s ease,
+    opacity 0.3s ease;
+}
+
+button:not([show]) {
+  max-height: 0;
+  opacity: 0;
+
+  transition:
+    max-height 0.3s ease,
+    opacity 0.3s ease;
+}
+
+button:disabled {
+  background-color: var(--disabled-color);
+  cursor: not-allowed;
+}
+
+.loader {
+  display: none;
+}
+
+button[isLoading] .title {
+  display: none;
+}
+
+button[isLoading] {
+  padding: 10px 5px;
+}
+
+button[isLoading] .loader {
+  width: 22px;
+  height: 22px;
+
+  border: 5px dotted var(--white-color);
+  border-radius: 50%;
+
+  display: inline-block;
+
+  animation: rotation 2s linear infinite;
+}
+
+@keyframes rotation {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fade-out {
+  100% {
+    opacity: 0;
+    display: none;
+  }
+}
