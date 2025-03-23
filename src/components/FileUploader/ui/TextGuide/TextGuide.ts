@@ -1,7 +1,13 @@
-import { eventBus } from '../../utils/eventBus';
+import { EventType, addEvent } from '../../utils/eventBus';
 
-import globalStyles from '../../global.css?inline';
+import rawGlobal from '../../global.css?inline';
 import rawStyles from './TextGuide.css?inline';
+
+const globalStylesheet = new CSSStyleSheet();
+globalStylesheet.replaceSync(rawGlobal);
+
+const componentStylesheet = new CSSStyleSheet();
+componentStylesheet.replaceSync(rawStyles);
 
 const TEXT_GUIDE = [
   'Перед загрузкой дайте имя файлу',
@@ -9,40 +15,48 @@ const TEXT_GUIDE = [
   'Загрузите ваш файл',
 ];
 
-class TextGuide extends HTMLElement {
+export class TextGuide extends HTMLElement {
   private textGuide: HTMLHeadingElement | null = null;
+  private abortController: AbortController | null = null;
+
+  static define(tagName = 'file-uploader-text-guide') {
+    customElements.define(tagName, this);
+  }
 
   constructor() {
     super();
-    this.attachShadow({ mode: 'open' });
+    this.attachShadow({ mode: 'open' }).adoptedStyleSheets = [
+      globalStylesheet,
+      componentStylesheet,
+    ];
 
     this.setZeroStage = this.setZeroStage.bind(this);
     this.setFirstStage = this.setFirstStage.bind(this);
     this.setSecondStage = this.setSecondStage.bind(this);
-    this.hideTextGuide = this.hideTextGuide.bind(this);
     this.showTextGuide = this.showTextGuide.bind(this);
     this.initTextGuide = this.initTextGuide.bind(this);
   }
 
   connectedCallback() {
+    this.abortController = new AbortController();
+    const { signal } = this.abortController;
+
     if (this.shadowRoot) {
       this.shadowRoot.innerHTML = this.render();
 
       this.textGuide =
         this.shadowRoot.querySelector<HTMLParagraphElement>('#textGuide');
 
-      eventBus?.addEventListener('added-name', this.setFirstStage);
-      eventBus?.addEventListener('removed-name', this.setZeroStage);
-      eventBus?.addEventListener('file-ready', this.setSecondStage);
-      eventBus?.addEventListener('deselected-file', this.setFirstStage);
-      eventBus?.addEventListener('upload-start', this.hideTextGuide);
-      eventBus?.addEventListener('init', this.initTextGuide);
+      addEvent(EventType.AddName, this.setFirstStage, { signal });
+      addEvent(EventType.RemoveName, this.setZeroStage, { signal });
+      addEvent(EventType.ReadFile, this.setSecondStage, { signal });
+      addEvent(EventType.DeselectFile, this.setFirstStage, { signal });
+      addEvent(EventType.Init, this.initTextGuide, { signal });
     }
   }
 
   disconnectedCallback() {
-    eventBus.removeEventListener('added-name', this.setFirstStage);
-    eventBus.removeEventListener('file-ready', this.setSecondStage);
+    this.abortController?.abort();
   }
 
   private initTextGuide() {
@@ -51,10 +65,6 @@ class TextGuide extends HTMLElement {
     }
     this.showTextGuide();
     this.setZeroStage();
-  }
-
-  private hideTextGuide() {
-    this.textGuide?.removeAttribute('show');
   }
 
   private showTextGuide() {
@@ -81,11 +91,7 @@ class TextGuide extends HTMLElement {
 
   render() {
     return `
-    <style>${globalStyles}</style>
-    <style>${rawStyles}</style>
     <h2 class="text-guide" id="textGuide" show>${TEXT_GUIDE[0]}</h2>
     `;
   }
 }
-
-customElements.define('file-uploader-text-guide', TextGuide);

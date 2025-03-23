@@ -13,8 +13,22 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+*,
+*::before,
+*::after {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
 body {
   display: flex;
   justify-content: center;
   align-items: center;
+  height: 100vh;
+
+  -webkit-user-drag: none; /* Отключает перетаскивание для всего тела страницы */
+  user-drag: none;
+
+  cursor: default !important;
 }

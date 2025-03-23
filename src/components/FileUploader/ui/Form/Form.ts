@@ -1,14 +1,20 @@
-import '../UploadButton/UploadButton';
-import '../FileDragInput/FileDragInput';
-import '../NameInput/NameInput';
-import '../Progress/Progress';
-import '../TextGuide/TextGuide';
+import {
+  EventType,
+  addEvent,
+  removeEvent,
+  dispatchEvent,
+} from '../../utils/eventBus';
 
-import { eventBus } from '../../utils/eventBus';
 import { uploadFile } from '../../utils/uploadFile';
 
-import globalStyles from '../../global.css?inline';
+import rawGlobal from '../../global.css?inline';
 import rawStyles from './Form.css?inline';
+
+const globalStylesheet = new CSSStyleSheet();
+globalStylesheet.replaceSync(rawGlobal);
+
+const componentStylesheet = new CSSStyleSheet();
+componentStylesheet.replaceSync(rawStyles);
 
 interface IUploadButtonElement extends HTMLElement {
   toggleButton(enabled: boolean): void;
@@ -28,13 +34,20 @@ export class Form extends HTMLElement {
   private uploadButton: IUploadButtonElement | null = null;
   private nameInput: INameInputElement | null = null;
   private fileDragInput: IFileDragInputElement | null = null;
+  private abortController: AbortController | null = null;
+
+  static define(tagName = 'file-uploader-form') {
+    customElements.define(tagName, this);
+  }
 
   constructor() {
     super();
-    this.attachShadow({ mode: 'open' });
+    this.attachShadow({ mode: 'open' }).adoptedStyleSheets = [
+      globalStylesheet,
+      componentStylesheet,
+    ];
 
     this.handleUpload = this.handleUpload.bind(this);
-
     this.readFileWithProgress = this.readFileWithProgress.bind(this);
   }
 
@@ -50,14 +63,16 @@ export class Form extends HTMLElement {
 
       this.uploadButton?.addEventListener('click', this.handleUpload);
 
-      eventBus.addEventListener('selected-file', this.readFileWithProgress);
+      addEvent(EventType.SelectFile, this.readFileWithProgress);
+      addEvent(EventType.Init, this.abortUpload);
     }
   }
 
   disconnectedCallback() {
     this.uploadButton?.removeEventListener('click', this.handleUpload);
 
-    eventBus.removeEventListener('selected-file', this.readFileWithProgress);
+    removeEvent(EventType.SelectFile, this.readFileWithProgress);
+    removeEvent(EventType.Init, this.abortUpload);
   }
 
   private async handleUpload() {
@@ -65,104 +80,134 @@ export class Form extends HTMLElement {
     const name = this.nameInput?.value;
 
     try {
-      eventBus.dispatchEvent(new CustomEvent('upload-start'));
-      const response = await uploadFile({ file, name });
-      eventBus.dispatchEvent(
-        new CustomEvent('upload-end', { detail: response }),
-      );
+      dispatchEvent(EventType.UploadStart);
+
+      this.abortController = new AbortController();
+
+      const response = await uploadFile({
+        file,
+        name,
+        abortSignal: this.abortController.signal, // Передаем сигнал отмены
+      });
+      dispatchEvent(EventType.UploadEnd, response);
       if (response.error) {
         this.content?.classList.add('error');
       }
     } catch {
-      eventBus.dispatchEvent(
-        new CustomEvent('upload-end', {
-          detail: {
-            error: {
-              status: '500 Internal Server Error',
-              message: 'Internal Server Error',
-            },
-          },
-        }),
-      );
+      dispatchEvent(EventType.UploadEnd, {
+        error: {
+          status: '500 Internal Server Error',
+          message: 'Internal Server Error',
+        },
+      });
       this.content?.classList.add('error');
     } finally {
       this.content?.setAttribute('response', '');
     }
   }
 
-  private readFileWithProgress(event: Event) {
-    const customEvent = event as CustomEvent<File>;
-    const file = customEvent.detail;
+  // private readFileWithProgress(event: Event) {
+  //   const customEvent = event as CustomEvent<File>;
+  //   const file = customEvent.detail;
+  //   if (!file) return;
+
+  //   const reader = new FileReader();
+  //   let targetProgress = 0;
+  //   let currentProgress = 0;
+  //   let fileLoaded = false; // Флаг, указывающий, что файл загружен
+
+  //   reader.onprogress = (event) => {
+  //     if (event.lengthComputable) {
+  //       // Проверяем, чтобы event.total не был равен 0
+  //       if (event.total > 0) {
+  //         targetProgress = Math.round((event.loaded / event.total) * 100);
+
+  //         // Плавное увеличение прогресса
+  //         const animateProgress = () => {
+  //           return new Promise<void>((resolve) => {
+  //             const updateProgress = () => {
+  //               if (currentProgress < targetProgress) {
+  //                 currentProgress += 10;
+  //                 eventBus.dispatchEvent(
+  //                   new CustomEvent('progress-update', {
+  //                     detail: currentProgress,
+  //                   }),
+  //                 );
+
+  //                 requestAnimationFrame(updateProgress);
+  //               } else {
+  //                 eventBus.dispatchEvent(
+  //                   new CustomEvent('progress-update', {
+  //                     detail: targetProgress,
+  //                   }),
+  //                 );
+  //                 resolve();
+  //               }
+  //             };
+
+  //             updateProgress();
+  //           });
+  //         };
+
+  //         animateProgress().then(() => {
+  //           if (fileLoaded) {
+  //             eventBus.dispatchEvent(
+  //               new CustomEvent('file-ready', { detail: file }),
+  //             );
+  //           }
+  //         });
+  //       }
+  //     }
+  //   };
+
+  //   reader.onload = () => {
+  //     fileLoaded = true; // Файл загружен
+  //   };
+
+  //   reader.readAsArrayBuffer(file);
+  // }
+
+  private readFileWithProgress(event: CustomEvent<File>) {
+    const file = event.detail;
     if (!file) return;
 
+    if (file.size === 0) {
+      dispatchEvent(EventType.ReadFile, file);
+      return;
+    }
+
     const reader = new FileReader();
-    let targetProgress = 0;
-    let currentProgress = 0;
-    let fileLoaded = false; // Флаг, указывающий, что файл загружен
 
-    reader.onprogress = (event) => {
+    reader.onprogress = (event: ProgressEvent<FileReader>) => {
       if (event.lengthComputable) {
-        targetProgress = Math.round((event.loaded / event.total) * 100);
-
-        // Плавное увеличение прогресса
-        const animateProgress = () => {
-          return new Promise<void>((resolve) => {
-            const updateProgress = () => {
-              if (currentProgress < targetProgress) {
-                currentProgress += 10;
-                eventBus.dispatchEvent(
-                  new CustomEvent('progress-update', {
-                    detail: currentProgress,
-                  }),
-                );
-
-                requestAnimationFrame(updateProgress);
-              } else {
-                eventBus.dispatchEvent(
-                  new CustomEvent('progress-update', {
-                    detail: targetProgress,
-                  }),
-                );
-                resolve(); // Завершаем Promise, когда прогресс достигнут
-              }
-            };
-
-            updateProgress();
-          });
-        };
-
-        // Ждем завершения анимации прогресса
-        animateProgress().then(() => {
-          if (fileLoaded) {
-            // Только если файл загружен, отправляем событие
-            eventBus.dispatchEvent(
-              new CustomEvent('file-ready', { detail: file }),
-            );
-          }
-        });
+        const progress = Math.round((event.loaded / event.total) * 100);
+        dispatchEvent(EventType.UpdateProgress, progress);
       }
     };
 
     reader.onload = () => {
-      fileLoaded = true; // Файл загружен
+      dispatchEvent(EventType.ReadFile, file);
     };
 
     reader.readAsArrayBuffer(file);
   }
 
+  private abortUpload() {
+    if (this.abortController) {
+      this.abortController.abort(); // Отменяем запрос
+    }
+  }
+
   render() {
     return `
-    <style>${globalStyles}</style>
-    <style>${rawStyles}</style>
     <div class="form">
         <h1 class="title" id="title">Загрузочное окно</h1>
         <file-uploader-title></file-uploader-title>
         <file-uploader-text-guide></file-uploader-text-guide>
         <file-uploader-name-input id='nameInput'></file-uploader-name-input>
-        <file-drag-input id='fileDragInput'></file-drag-input>
+        <file-uploader-file-drag-input id='fileDragInput'></file-uploader-file-drag-input>
         <file-uploader-progress> draggable="false"></file-uploader-progress>
         <file-uploader-upload-button id='uploadButton'></file-uploader-upload-button>
     </div>`;
   }
 }
-customElements.define('file-uploader-form', Form);

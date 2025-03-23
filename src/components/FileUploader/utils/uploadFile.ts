@@ -1,6 +1,7 @@
 interface IFileUploadOptions {
   file: File | undefined;
   name: string | undefined;
+  abortSignal?: AbortSignal;
 }
 
 export interface IUploadSuccessResponse {
@@ -24,37 +25,31 @@ export type IUploadFileResponse = {
 export async function uploadFile({
   file,
   name,
+  abortSignal,
 }: IFileUploadOptions): Promise<IUploadFileResponse> {
-  // const apiUrl = 'https://file-upload-server-mc26.onrender.com/api/v1/upload';
+  const apiUrl = 'https://file-upload-server-mc26.onrender.com/api/v1/upload';
+
+  const controller = new AbortController();
+  const signal = abortSignal || controller.signal;
   try {
     if (!file || !name) {
-      throw new UploadError(400, 'File and name are required');
+      throw new UploadError(400, 'Необходимы файл и имя');
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('name', name);
 
-    // throw new UploadError(400, 'File and name are required');
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      body: formData,
+      signal, // Передаем сигнал в fetch
+    });
 
-    // const formData = new FormData();
-    // formData.append('file', file);
-    // formData.append('name', name);
+    const result = await response.json();
 
-    // const response = await fetch(apiUrl, {
-    //   method: 'POST',
-    //   body: formData,
-    // });
-
-    // const result = await response.json();
-
-    // if (!response.ok) {
-    //   throw new UploadError(response.status, result.error, result.details);
-    // }
-
-    const result = {
-      message: 'File uploaded successfully',
-      filename: 'example.jpg',
-      nameField: 'John Doe',
-      timestamp: '2023-08-01T12:00:00Z',
+    if (!response.ok) {
+      throw new UploadError(response.status, result.error, result.details);
     }
 
     return { data: result };

@@ -8,7 +8,9 @@ button[show] {
   padding: 16px 5px;
 
   background-color: var(--accent-color);
-  color: white;
+  color: var(--white-color);
+  font-weight: 500;
+  font-size: 20px;
 
   border-radius: 30px;
 
@@ -34,6 +36,7 @@ button:not([show]) {
 
 button:disabled {
   background-color: var(--disabled-color);
+  color: var(--light-white-color);
   cursor: not-allowed;
 }
 

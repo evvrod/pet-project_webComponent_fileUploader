@@ -1,14 +1,27 @@
-import { eventBus } from '../../utils/eventBus';
+import { EventType, addEvent } from '../../utils/eventBus';
 
-import globalStyles from '../../global.css?inline';
+import rawGlobal from '../../global.css?inline';
 import rawStyles from './UploadButton.css?inline';
 
-class UploadButton extends HTMLElement {
+const globalStylesheet = new CSSStyleSheet();
+if (globalStylesheet.replaceSync && rawGlobal) {
+  globalStylesheet.replaceSync(rawGlobal);
+}
+const componentStylesheet = new CSSStyleSheet();
+if (componentStylesheet.replaceSync && rawStyles) {
+  componentStylesheet.replaceSync(rawStyles);
+}
+
+export class UploadButton extends HTMLElement {
   private uploadButton: HTMLButtonElement | null = null;
+  private abortController: AbortController | null = null;
 
   constructor() {
     super();
-    this.attachShadow({ mode: 'open' });
+    this.attachShadow({ mode: 'open' }).adoptedStyleSheets = [
+      globalStylesheet,
+      componentStylesheet,
+    ];
 
     this.enableButton = this.enableButton.bind(this);
     this.disableButton = this.disableButton.bind(this);
@@ -20,29 +33,32 @@ class UploadButton extends HTMLElement {
     this.initButton = this.initButton.bind(this);
   }
 
+  static define(tagName = 'file-uploader-upload-button') {
+    customElements.define(tagName, this);
+  }
+
   connectedCallback() {
+    this.abortController = new AbortController();
+    const { signal } = this.abortController;
+
     if (this.shadowRoot) {
       this.shadowRoot.innerHTML = this.render();
 
       this.uploadButton =
         this.shadowRoot.querySelector<HTMLButtonElement>('#uploadBtn');
 
-      eventBus.addEventListener('file-ready', this.enableButton);
-      eventBus.addEventListener('deselected-file', this.disableButton);
-
-      eventBus.addEventListener('upload-start', this.showLoading);
-      eventBus.addEventListener('upload-start', this.disableButton);
-
-      eventBus.addEventListener('upload-end', this.hideLoading);
-      eventBus.addEventListener('upload-end', this.hideButton);
-
-      eventBus.addEventListener('init', this.initButton);
+      addEvent(EventType.ReadFile, this.enableButton, { signal });
+      addEvent(EventType.DeselectFile, this.disableButton, { signal });
+      addEvent(EventType.UploadStart, this.showLoading, { signal });
+      addEvent(EventType.UploadStart, this.disableButton, { signal });
+      addEvent(EventType.UploadEnd, this.hideLoading, { signal });
+      addEvent(EventType.UploadEnd, this.hideButton, { signal });
+      addEvent(EventType.Init, this.initButton, { signal });
     }
   }
 
   disconnectedCallback() {
-    eventBus.removeEventListener('file-ready', this.enableButton);
-    eventBus.removeEventListener('deselected-file', this.disableButton);
+    this.abortController?.abort();
   }
 
   private initButton() {
@@ -90,13 +106,9 @@ class UploadButton extends HTMLElement {
 
   render() {
     return `
-    <style>${globalStyles}</style>
-    <style>${rawStyles}</style>
     <button id="uploadBtn" disabled show>
       <span class='title'>Загрузить</span>
       <span class="loader"></span>
     </button>`;
   }
 }
-
-customElements.define('file-uploader-upload-button', UploadButton);

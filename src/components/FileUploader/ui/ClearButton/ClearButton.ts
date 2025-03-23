@@ -1,10 +1,26 @@
-import globalStyles from '../../global.css?inline';
+import rawGlobal from '../../global.css?inline';
 import rawStyles from './ClearButton.css?inline';
 
-class ClearButton extends HTMLElement {
+const globalStylesheet = new CSSStyleSheet();
+if (globalStylesheet.replaceSync && rawGlobal) {
+  globalStylesheet.replaceSync(rawGlobal);
+}
+const componentStylesheet = new CSSStyleSheet();
+if (componentStylesheet.replaceSync && rawStyles) {
+  componentStylesheet.replaceSync(rawStyles);
+}
+
+export class ClearButton extends HTMLElement {
+  static define(tagName = 'file-uploader-clear-button') {
+    customElements.define(tagName, this);
+  }
+
   constructor() {
     super();
-    this.attachShadow({ mode: 'open' });
+    this.attachShadow({ mode: 'open' }).adoptedStyleSheets = [
+      globalStylesheet,
+      componentStylesheet,
+    ];
   }
 
   connectedCallback() {
@@ -15,8 +31,6 @@ class ClearButton extends HTMLElement {
 
   private render() {
     return `
-        <style>${globalStyles}</style>
-        <style>${rawStyles}</style>
         <button>
           <div class="line"></div>
           <div class="line"></div>
@@ -24,5 +38,3 @@ class ClearButton extends HTMLElement {
       `;
   }
 }
-
-customElements.define('clear-button', ClearButton);

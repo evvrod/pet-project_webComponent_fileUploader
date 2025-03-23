@@ -1,20 +1,34 @@
-import { eventBus } from '../../utils/eventBus';
-
-import globalStyles from '../../global.css?inline';
-import rawStyles from './FileDragInput.css?inline';
+import { EventType, addEvent, dispatchEvent } from '../../utils/eventBus';
 
 import icon from '../../assets/docs pic.png';
-
 import { validateFile } from '../../utils/validateFile';
 
-class FileDragInput extends HTMLElement {
+import rawGlobal from '../../global.css?inline';
+import rawStyles from './FileDragInput.css?inline';
+
+const globalStylesheet = new CSSStyleSheet();
+globalStylesheet.replaceSync(rawGlobal);
+
+const componentStylesheet = new CSSStyleSheet();
+componentStylesheet.replaceSync(rawStyles);
+
+export class FileDragInput extends HTMLElement {
   private privateValue: File | null = null;
   private dropZone: HTMLDivElement | null = null;
   private errorDiv: HTMLDivElement | null = null;
+  private abortController: AbortController | null = null;
+
+  static define(tagName = 'file-uploader-file-drag-input') {
+    customElements.define(tagName, this);
+  }
 
   constructor() {
     super();
-    this.attachShadow({ mode: 'open' });
+    this.abortController = null;
+    this.attachShadow({ mode: 'open' }).adoptedStyleSheets = [
+      globalStylesheet,
+      componentStylesheet,
+    ];
 
     this.handleDragOver = this.handleDragOver.bind(this);
     this.handleDragLeave = this.handleDragLeave.bind(this);
@@ -25,37 +39,32 @@ class FileDragInput extends HTMLElement {
 
     this.hideError = this.hideError.bind(this);
 
-    this.hideFileDragInput = this.hideFileDragInput.bind(this);
     this.showFileDragInput = this.showFileDragInput.bind(this);
-
     this.initFileDragInput = this.initFileDragInput.bind(this);
   }
 
   connectedCallback() {
+    this.abortController = new AbortController();
+    const { signal } = this.abortController;
+
     if (this.shadowRoot) {
       this.shadowRoot.innerHTML = this.render();
 
       this.dropZone =
-        this.shadowRoot.querySelector<HTMLDivElement>('.drop-zone');
-      this.errorDiv = this.shadowRoot.querySelector<HTMLDivElement>('.error');
+        this.shadowRoot.querySelector<HTMLDivElement>('#dropZone');
+      this.errorDiv = this.shadowRoot.querySelector<HTMLDivElement>('#error');
 
-      eventBus.addEventListener('added-name', this.activateFileDragInput);
-      eventBus.addEventListener('removed-name', this.deactivateFileDragInput);
-      eventBus.addEventListener('selected-file', this.deactivateFileDragInput);
-      eventBus.addEventListener('deselected-file', this.activateFileDragInput);
-      eventBus.addEventListener('deselected-file', this.hideError);
-      eventBus.addEventListener('upload-end', this.hideFileDragInput);
-      eventBus.addEventListener('init', this.initFileDragInput);
+      addEvent(EventType.AddName, this.activateFileDragInput, { signal });
+      addEvent(EventType.RemoveName, this.deactivateFileDragInput, { signal });
+      addEvent(EventType.SelectFile, this.deactivateFileDragInput, { signal });
+      addEvent(EventType.DeselectFile, this.activateFileDragInput, { signal });
+      addEvent(EventType.DeselectFile, this.hideError, { signal });
+      addEvent(EventType.Init, this.initFileDragInput, { signal });
     }
   }
 
   disconnectedCallback() {
-    this.dropZone?.removeEventListener('dragover', this.handleDragOver);
-    this.dropZone?.removeEventListener('dragleave', this.handleDragLeave);
-    this.dropZone?.removeEventListener('drop', this.handleDrop);
-
-    eventBus.removeEventListener('added-name', this.activateFileDragInput);
-    eventBus.removeEventListener('deselected-file', this.hideError);
+    this.abortController?.abort();
   }
 
   private initFileDragInput() {
@@ -89,11 +98,6 @@ class FileDragInput extends HTMLElement {
       // Удаляем атрибут 'drag-active' при отключении компонента
       dropZone.removeAttribute('drag-active');
     }
-  }
-
-  private hideFileDragInput() {
-    this.deactivateFileDragInput();
-    this.dropZone?.removeAttribute('show');
   }
 
   private showFileDragInput() {
@@ -135,9 +139,7 @@ class FileDragInput extends HTMLElement {
         this.errorDiv.textContent = errors.join(' ');
       }
 
-      eventBus.dispatchEvent(
-        new CustomEvent('error-selected-file', { detail: file }),
-      );
+      dispatchEvent(EventType.SelectFileError);
 
       this.deactivateFileDragInput();
 
@@ -146,7 +148,7 @@ class FileDragInput extends HTMLElement {
 
     this.privateValue = file;
 
-    eventBus.dispatchEvent(new CustomEvent('selected-file', { detail: file }));
+    dispatchEvent(EventType.SelectFile, file);
   }
 
   get value() {
@@ -155,17 +157,13 @@ class FileDragInput extends HTMLElement {
 
   render() {
     return `
-    <style >${globalStyles}</style>
-    <style>${rawStyles}</style>
-    <div class="drop-zone" show>
+    <div class="drop-zone" id="dropZone" show>
       <div class="drag-over-message">
         <img src=${icon} alt='' draggable="false"/>
         <p>Перенесите файл в область загрузки</p>
       </div>
     </div>
-    <div class="error"></div>
+    <div class="error" id="error"></div>
     `;
   }
 }
-
-customElements.define('file-drag-input', FileDragInput);

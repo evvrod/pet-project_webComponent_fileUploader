@@ -1,11 +1,20 @@
-import { eventBus } from '../../utils/eventBus';
+import {
+  EventType,
+  addEvent,
+  removeEvent,
+  dispatchEvent,
+} from '../../utils/eventBus';
 
-import globalStyles from '../../global.css?inline';
+import rawGlobal from '../../global.css?inline';
 import rawStyles from './NameInput.css?inline';
 
-import '../ClearButton/ClearButton';
+const globalStylesheet = new CSSStyleSheet();
+globalStylesheet.replaceSync(rawGlobal);
 
-class NameInput extends HTMLElement {
+const componentStylesheet = new CSSStyleSheet();
+componentStylesheet.replaceSync(rawStyles);
+
+export class NameInput extends HTMLElement {
   private privateValue: string = '';
   private wrapperInput: HTMLDivElement | null = null;
   private nameInput: HTMLInputElement | null = null;
@@ -13,13 +22,20 @@ class NameInput extends HTMLElement {
 
   constructor() {
     super();
-    this.attachShadow({ mode: 'open' });
+    this.attachShadow({ mode: 'open' }).adoptedStyleSheets = [
+      globalStylesheet,
+      componentStylesheet,
+    ];
 
     this.handleInput = this.handleInput.bind(this);
     this.hideInput = this.hideInput.bind(this);
     this.handleInputClear = this.handleInputClear.bind(this);
     this.showInput = this.showInput.bind(this);
     this.initNameInput = this.initNameInput.bind(this);
+  }
+
+  static define(tagName = 'file-uploader-name-input') {
+    customElements.define(tagName, this);
   }
 
   connectedCallback() {
@@ -37,27 +53,19 @@ class NameInput extends HTMLElement {
 
       this.clearButton?.addEventListener('click', this.handleInputClear);
 
-      eventBus.addEventListener(
-        'selected-file',
-        this.hideInput as EventListener,
-      );
+      addEvent(EventType.SelectFile, this.hideInput);
+      addEvent(EventType.SelectFile, this.showInput);
 
-      eventBus.addEventListener(
-        'deselected-file',
-        this.showInput as EventListener,
-      );
-
-      eventBus.addEventListener('init', this.initNameInput);
+      addEvent(EventType.Init, this.initNameInput);
     }
   }
 
   disconnectedCallback() {
     this.nameInput?.removeEventListener('input', this.handleInput);
 
-    eventBus.removeEventListener(
-      'selected-file',
-      this.hideInput as EventListener,
-    );
+    removeEvent(EventType.SelectFile, this.hideInput);
+    removeEvent(EventType.SelectFile, this.showInput);
+    removeEvent(EventType.Init, this.initNameInput);
   }
 
   private initNameInput() {
@@ -72,7 +80,7 @@ class NameInput extends HTMLElement {
       this.nameInput.value = '';
     }
     this.clearButton?.setAttribute('disabled', 'true');
-    eventBus.dispatchEvent(new CustomEvent('removed-name'));
+    dispatchEvent(EventType.RemoveName);
   }
 
   private handleInput(event: Event) {
@@ -82,11 +90,9 @@ class NameInput extends HTMLElement {
       if (name !== '') {
         this.clearButton?.removeAttribute('disabled');
         this.privateValue = name;
-        eventBus.dispatchEvent(new CustomEvent('added-name', { detail: name }));
+        dispatchEvent(EventType.AddName, name);
       } else {
-        eventBus.dispatchEvent(
-          new CustomEvent('removed-name', { detail: name }),
-        );
+        dispatchEvent(EventType.RemoveName);
         this.clearButton?.setAttribute('disabled', 'true');
       }
     }
@@ -116,16 +122,12 @@ class NameInput extends HTMLElement {
 
   render() {
     return `
-    <style>${globalStyles}</style>
-    <style>${rawStyles}</style>
     <div class="wrapper-input" id="wrapperInput" show>
       <input type="text" id="nameInput" placeholder="Название файла" />
       <div class="wrapper-clear-button">
-        <clear-button id="clearButton" disabled></clear-button>
+        <file-uploader-clear-button id="clearButton" disabled></file-uploader-clear-button>
       </div>
     </div>
     `;
   }
 }
-
-customElements.define('file-uploader-name-input', NameInput);

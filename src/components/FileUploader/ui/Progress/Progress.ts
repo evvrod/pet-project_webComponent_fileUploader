@@ -1,12 +1,17 @@
-import { eventBus } from '../../utils/eventBus';
+import { EventType, addEvent, dispatchEvent } from '../../utils/eventBus';
+
 import getFileExtension from '../../utils/getFileExtension';
 
-import globalStyles from '../../global.css?inline';
+import rawGlobal from '../../global.css?inline';
 import rawStyles from './Progress.css?inline';
 
-import '../ClearButton/ClearButton';
+const globalStylesheet = new CSSStyleSheet();
+globalStylesheet.replaceSync(rawGlobal);
 
-class Progress extends HTMLElement {
+const componentStylesheet = new CSSStyleSheet();
+componentStylesheet.replaceSync(rawStyles);
+
+export class Progress extends HTMLElement {
   private progress: HTMLDivElement | null = null;
   private file: HTMLInputElement | null = null;
   private filename: HTMLSpanElement | null = null;
@@ -15,10 +20,19 @@ class Progress extends HTMLElement {
   private progressBar: HTMLDivElement | null = null;
   private progressLine: HTMLDivElement | null = null;
   private clearButton: HTMLButtonElement | null = null;
+  private abortController: AbortController | null = null;
+
+  static define(tagName = 'file-uploader-progress') {
+    customElements.define(tagName, this);
+  }
 
   constructor() {
     super();
-    this.attachShadow({ mode: 'open' });
+    this.abortController = null;
+    this.attachShadow({ mode: 'open' }).adoptedStyleSheets = [
+      globalStylesheet,
+      componentStylesheet,
+    ];
 
     this.updateProgress = this.updateProgress.bind(this);
 
@@ -26,15 +40,17 @@ class Progress extends HTMLElement {
     this.updateFileExtension = this.updateFileExtension.bind(this);
 
     this.showProgress = this.showProgress.bind(this);
-    this.hideProgress = this.hideProgress.bind(this);
-    this.animateProgress = this.animateProgress.bind(this);
     this.deactivateProgress = this.deactivateProgress.bind(this);
+    this.animateProgress = this.animateProgress.bind(this);
     this.initProgress = this.initProgress.bind(this);
 
     this.handleProgressClear = this.handleProgressClear.bind(this);
   }
 
   connectedCallback() {
+    this.abortController = new AbortController();
+    const { signal } = this.abortController;
+
     if (this.shadowRoot) {
       this.shadowRoot.innerHTML = this.render();
 
@@ -54,66 +70,33 @@ class Progress extends HTMLElement {
       this.clearButton =
         this.shadowRoot.querySelector<HTMLButtonElement>('#clearButton');
 
-      this.clearButton?.addEventListener('click', this.handleProgressClear);
+      this.clearButton?.addEventListener('click', this.handleProgressClear, {
+        signal,
+      });
 
-      eventBus.addEventListener(
-        'added-name',
-        this.updateFilename as EventListener,
-      );
-
-      eventBus.addEventListener(
-        'selected-file',
-        this.showProgress as EventListener,
-      );
-
-      eventBus.addEventListener(
-        'selected-file',
-        this.updateFileExtension as EventListener,
-      );
-
-      eventBus.addEventListener('error-selected-file', this.showProgress);
-
-      eventBus.addEventListener(
-        'error-selected-file',
-        this.updateFileExtension as EventListener,
-      );
-
-      eventBus.addEventListener('file-ready', this.animateProgress);
-
-      eventBus.addEventListener(
-        'progress-update',
-        this.updateProgress as EventListener,
-      );
-
-      eventBus.addEventListener('upload-start', this.deactivateProgress);
-      eventBus.addEventListener('upload-end', this.hideProgress);
-
-      eventBus.addEventListener('init', this.initProgress);
+      addEvent(EventType.AddName, this.updateFilename, { signal });
+      addEvent(EventType.SelectFile, this.showProgress, { signal });
+      addEvent(EventType.SelectFile, this.updateFileExtension, { signal });
+      addEvent(EventType.SelectFileError, this.showProgress, { signal });
+      addEvent(EventType.SelectFileError, this.updateFileExtension, { signal });
+      addEvent(EventType.ReadFile, this.animateProgress, { signal });
+      addEvent(EventType.UpdateProgress, this.updateProgress, { signal });
+      addEvent(EventType.UploadStart, this.deactivateProgress, { signal });
+      addEvent(EventType.Init, this.initProgress, { signal });
     }
   }
 
   disconnectedCallback() {
-    eventBus.removeEventListener(
-      'progress-update',
-      this.updateProgress as EventListener,
-    );
-    eventBus?.removeEventListener(
-      'selected-file',
-      this.updateFileExtension as EventListener,
-    );
+    this.abortController?.abort();
   }
 
   private handleProgressClear() {
-    eventBus.dispatchEvent(new CustomEvent('deselected-file'));
+    dispatchEvent(EventType.DeselectFile);
     this.initProgress();
   }
 
   private showProgress() {
     this.progress?.setAttribute('show', ``);
-  }
-
-  private hideProgress() {
-    this.progress?.removeAttribute('show');
   }
 
   private initProgress() {
@@ -163,8 +146,6 @@ class Progress extends HTMLElement {
 
   render() {
     return `
-    <style>${globalStyles}</style>
-    <style>${rawStyles}</style>
         <div class='progress' id='progress' active>
             <div class='icon'></div>
             <div class='loader'>
@@ -179,10 +160,8 @@ class Progress extends HTMLElement {
                     <div class='progress-line' id='progress-line'></div>
                 </div>
             </div>
-            <clear-button id='clearButton'></clear-button>
+            <file-uploader-clear-button id='clearButton'></file-uploader-clear-button>
         </div>
     `;
   }
 }
-
-customElements.define('file-uploader-progress', Progress);

@@ -1,4 +1,4 @@
-import { eventBus } from '../../utils/eventBus';
+import { EventType, addEvent, removeEvent } from '../../utils/eventBus';
 
 import {
   IUploadFileResponse,
@@ -6,11 +6,16 @@ import {
   IUploadSuccessResponse,
 } from '../../utils/uploadFile';
 
-import globalStyles from '../../global.css?inline';
+import rawGlobal from '../../global.css?inline';
 import rawStyles from './Response.css?inline';
 
-class Response extends HTMLElement {
-  private response: HTMLElement | null = null;
+const globalStylesheet = new CSSStyleSheet();
+globalStylesheet.replaceSync(rawGlobal);
+
+const componentStylesheet = new CSSStyleSheet();
+componentStylesheet.replaceSync(rawStyles);
+
+export class Response extends HTMLElement {
   private titleResponse: HTMLElement | null = null;
   private infoBlock: HTMLElement | null = null;
   private name: HTMLElement | null = null;
@@ -20,54 +25,48 @@ class Response extends HTMLElement {
   private errorBlock: HTMLElement | null = null;
   private errorStatus: HTMLElement | null = null;
   private errorMessage: HTMLElement | null = null;
+
+  static define(tagName = 'file-uploader-response') {
+    customElements.define(tagName, this);
+  }
+
   constructor() {
     super();
-    this.attachShadow({ mode: 'open' });
+    this.attachShadow({ mode: 'open' }).adoptedStyleSheets = [
+      globalStylesheet,
+      componentStylesheet,
+    ];
 
     this.showResponse = this.showResponse.bind(this);
-    this.initResponse = this.initResponse.bind(this);
   }
 
   connectedCallback() {
     if (this.shadowRoot) {
       this.shadowRoot.innerHTML = this.render();
 
-      this.titleResponse = this.shadowRoot.getElementById(
-        'titleResponse',
-      ) as HTMLElement;
+      this.titleResponse =
+        this.shadowRoot.querySelector<HTMLHeadingElement>('#titleResponse');
+      this.infoBlock =
+        this.shadowRoot.querySelector<HTMLDivElement>('#infoBlock');
+      this.name = this.shadowRoot.querySelector<HTMLSpanElement>('#name');
+      this.filename =
+        this.shadowRoot.querySelector<HTMLSpanElement>('#filename');
+      this.timestamp =
+        this.shadowRoot.querySelector<HTMLSpanElement>('#timestamp');
+      this.message = this.shadowRoot.querySelector<HTMLSpanElement>('#message');
+      this.errorBlock =
+        this.shadowRoot.querySelector<HTMLDivElement>('#errorBlock');
+      this.errorStatus =
+        this.shadowRoot.querySelector<HTMLSpanElement>('#errorStatus');
+      this.errorMessage =
+        this.shadowRoot.querySelector<HTMLSpanElement>('#errorMessage');
 
-      this.response = this.shadowRoot.getElementById('response') as HTMLElement;
-      this.infoBlock = this.shadowRoot.getElementById(
-        'infoBlock',
-      ) as HTMLElement;
-      this.name = this.shadowRoot.getElementById('name') as HTMLElement;
-      this.filename = this.shadowRoot.getElementById('filename') as HTMLElement;
-      this.timestamp = this.shadowRoot.getElementById(
-        'timestamp',
-      ) as HTMLElement;
-      this.message = this.shadowRoot.getElementById('message') as HTMLElement;
-
-      this.errorBlock = this.shadowRoot.getElementById(
-        'errorBlock',
-      ) as HTMLElement;
-      this.errorStatus = this.shadowRoot.getElementById(
-        'errorStatus',
-      ) as HTMLElement;
-      this.errorMessage = this.shadowRoot.getElementById(
-        'errorMessage',
-      ) as HTMLElement;
-
-      eventBus.addEventListener(
-        'upload-end',
-        this.showResponse as EventListener,
-      );
-
-      eventBus.addEventListener('init', this.initResponse);
+      addEvent(EventType.UploadEnd, this.showResponse);
     }
   }
 
-  private initResponse() {
-    this.response?.removeAttribute('show');
+  disconnectedCallback() {
+    removeEvent(EventType.UploadEnd, this.showResponse);
   }
 
   private showResponse(event: CustomEvent<IUploadFileResponse>) {
@@ -79,7 +78,6 @@ class Response extends HTMLElement {
   }
 
   private showInfo(data: IUploadSuccessResponse) {
-    this.response?.setAttribute('show', '');
     this.infoBlock?.setAttribute('show', '');
     this.errorBlock?.removeAttribute('show');
     if (this.titleResponse)
@@ -92,8 +90,6 @@ class Response extends HTMLElement {
   }
 
   private showError(error: IUploadError) {
-    this.response?.setAttribute('show', '');
-
     this.errorBlock?.setAttribute('show', '');
     this.infoBlock?.removeAttribute('show');
     if (this.titleResponse)
@@ -105,9 +101,7 @@ class Response extends HTMLElement {
 
   render() {
     return `
-    <style>${globalStyles}</style>
-    <style>${rawStyles}</style>
-      <div class='response' id='response'>
+      <div class='response'>
         <h1 class="title" id="titleResponse"></h1>
         <div class='info-block' id='infoBlock'>
             <p>
@@ -140,5 +134,3 @@ class Response extends HTMLElement {
     `;
   }
 }
-
-customElements.define('file-uploader-response', Response);
