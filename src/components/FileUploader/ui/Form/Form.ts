@@ -106,67 +106,6 @@ export class Form extends HTMLElement {
     }
   }
 
-  // private readFileWithProgress(event: Event) {
-  //   const customEvent = event as CustomEvent<File>;
-  //   const file = customEvent.detail;
-  //   if (!file) return;
-
-  //   const reader = new FileReader();
-  //   let targetProgress = 0;
-  //   let currentProgress = 0;
-  //   let fileLoaded = false; // Флаг, указывающий, что файл загружен
-
-  //   reader.onprogress = (event) => {
-  //     if (event.lengthComputable) {
-  //       // Проверяем, чтобы event.total не был равен 0
-  //       if (event.total > 0) {
-  //         targetProgress = Math.round((event.loaded / event.total) * 100);
-
-  //         // Плавное увеличение прогресса
-  //         const animateProgress = () => {
-  //           return new Promise<void>((resolve) => {
-  //             const updateProgress = () => {
-  //               if (currentProgress < targetProgress) {
-  //                 currentProgress += 10;
-  //                 eventBus.dispatchEvent(
-  //                   new CustomEvent('progress-update', {
-  //                     detail: currentProgress,
-  //                   }),
-  //                 );
-
-  //                 requestAnimationFrame(updateProgress);
-  //               } else {
-  //                 eventBus.dispatchEvent(
-  //                   new CustomEvent('progress-update', {
-  //                     detail: targetProgress,
-  //                   }),
-  //                 );
-  //                 resolve();
-  //               }
-  //             };
-
-  //             updateProgress();
-  //           });
-  //         };
-
-  //         animateProgress().then(() => {
-  //           if (fileLoaded) {
-  //             eventBus.dispatchEvent(
-  //               new CustomEvent('file-ready', { detail: file }),
-  //             );
-  //           }
-  //         });
-  //       }
-  //     }
-  //   };
-
-  //   reader.onload = () => {
-  //     fileLoaded = true; // Файл загружен
-  //   };
-
-  //   reader.readAsArrayBuffer(file);
-  // }
-
   private readFileWithProgress(event: CustomEvent<File>) {
     const file = event.detail;
     if (!file) return;

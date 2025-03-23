@@ -139,7 +139,7 @@ export class FileDragInput extends HTMLElement {
         this.errorDiv.textContent = errors.join(' ');
       }
 
-      dispatchEvent(EventType.SelectFileError);
+      dispatchEvent(EventType.SelectFileError, file);
 
       this.deactivateFileDragInput();
 

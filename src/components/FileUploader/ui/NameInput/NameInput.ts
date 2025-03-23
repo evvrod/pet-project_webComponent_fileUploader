@@ -31,6 +31,7 @@ export class NameInput extends HTMLElement {
     this.hideInput = this.hideInput.bind(this);
     this.handleInputClear = this.handleInputClear.bind(this);
     this.showInput = this.showInput.bind(this);
+    this.hideInput = this.hideInput.bind(this);
     this.initNameInput = this.initNameInput.bind(this);
   }
 
@@ -54,7 +55,8 @@ export class NameInput extends HTMLElement {
       this.clearButton?.addEventListener('click', this.handleInputClear);
 
       addEvent(EventType.SelectFile, this.hideInput);
-      addEvent(EventType.SelectFile, this.showInput);
+      addEvent(EventType.SelectFileError, this.hideInput);
+      addEvent(EventType.DeselectFile, this.showInput);
 
       addEvent(EventType.Init, this.initNameInput);
     }
@@ -64,12 +66,12 @@ export class NameInput extends HTMLElement {
     this.nameInput?.removeEventListener('input', this.handleInput);
 
     removeEvent(EventType.SelectFile, this.hideInput);
-    removeEvent(EventType.SelectFile, this.showInput);
+    removeEvent(EventType.SelectFileError, this.hideInput);
+    removeEvent(EventType.DeselectFile, this.showInput);
     removeEvent(EventType.Init, this.initNameInput);
   }
 
   private initNameInput() {
-    console.log('initNameInput');
     this.showInput();
     this.handleInputClear();
     this.privateValue = '';

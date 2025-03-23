@@ -6,9 +6,10 @@
 
 ## Стек технологий
 - JavaScript (ES6+)
-- Веб-компоненты (Custom Elements, Shadow DOM)
+- TypeScript
+- Веб-компоненты (Custom Elements, Shadow DOM, Custom Event)
 - Vite 
-- API 
+- API
 - Vitest
 
 ## Структура
@@ -33,7 +34,8 @@
 
 ## Интерфейс приложения
 ![alt text](image.png)
-![alt text](image-1.png)
+
+<video src="Video.mp4" width="388" height="712" controls></video>
 
 ## Как запустить проект
 
@@ -76,3 +78,4 @@ import './file-upload-component.js';
 ```js
 <file-upload-component></file-upload-component>
 ```
+

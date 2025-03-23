@@ -22,7 +22,7 @@ export type CustomEventMap = {
   [EventType.AddName]: CustomEvent<string>;
   [EventType.RemoveName]: CustomEvent<void>;
   [EventType.SelectFile]: CustomEvent<File>;
-  [EventType.SelectFileError]: CustomEvent<void>;
+  [EventType.SelectFileError]: CustomEvent<File>;
   [EventType.DeselectFile]: CustomEvent<File>;
   [EventType.ReadFile]: CustomEvent<File>;
   [EventType.GetResponse]: CustomEvent<IUploadFileResponse>;
