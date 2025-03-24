@@ -1,0 +1,40 @@
+:host {
+  display: contents;
+}
+
+.wrapper-input[show] {
+  position: relative;
+  width: 100%;
+}
+
+.wrapper-input:not([show]) {
+  display: none;
+}
+
+input {
+  position: relative;
+  width: 100%;
+  padding: 6px 24px 6px 9px;
+
+  color: var(--accent-color);
+  font-weight: 500;
+  font-size: 17.5px;
+  background-color: var(--light-white-color);
+  border: 1px solid var(--grey-color);
+  border-radius: 10px;
+}
+
+input::placeholder {
+  color: var(--grey-color);
+}
+
+input:focus {
+  outline: none;
+}
+
+.wrapper-clear-button {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+}
